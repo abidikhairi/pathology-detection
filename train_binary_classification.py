@@ -19,7 +19,7 @@ if __name__ == "__main__":
         transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
 
-    dataset = ImageFolder("data/Images", transform=transform)
+    dataset = ImageFolder("data/BinaryClassification", transform=transform)
     train_size = int(0.8 * len(dataset))
     trainset, testset = random_split(dataset, [train_size, len(dataset) - train_size])
 
@@ -41,12 +41,12 @@ if __name__ == "__main__":
         for inputs, labels in tqdm(trainloader, desc="Iterating over training data", leave=False):
             
             inputs = inputs.to(device)
-            labels = labels.to(device)
+            labels = labels.float().to(device)
 
             optimizer.zero_grad()
 
             outputs = model(inputs)
-            logits = sigmoid(outputs)
+            logits = sigmoid(outputs).view(-1)
 
             loss = criterion(logits, labels)
             
@@ -54,14 +54,14 @@ if __name__ == "__main__":
             optimizer.step()
 
             iteration_losses.append(loss.item())
-            iteration_auc.append(metrics.auc(logits.detach().cpu(), labels.detach().cpu()))
+            iteration_auc.append(metrics.auc(logits.detach().cpu(), labels.detach().cpu(), reorder=True))
         
         epoch_losses.append(sum(iteration_losses) / len(iteration_losses))
 
 
         plt.figure(figsize=(10, 8))
-        plt.plot(range(len(trainloader), epoch_losses))
-        plt.plot(range(len(trainloader), iteration_auc))
+        plt.plot(range(len(trainloader)), iteration_losses, label="Loss")
+        plt.plot(range(len(trainloader)), iteration_auc, label="AUC")
         plt.xlabel("Iteration (epoch: {})".format(epoch))
         plt.ylabel("Loss")
         plt.savefig(f"figures/binary-classification/training-metrics-{epoch}.png")
@@ -75,15 +75,15 @@ if __name__ == "__main__":
 
         for inputs, labels in tqdm(testloader, desc="Iterating over test data", leave=False):
             inputs = inputs.to(device)
-            labels = labels.to(device)
+            labels = labels.float().to(device)
 
             outputs = model(inputs)
-            logits = sigmoid(outputs)
+            logits = sigmoid(outputs).view(-1)
 
             loss = criterion(logits, labels)
 
             test_losses.append(loss.item())
-            test_auc.append(metrics.auc(logits, labels))
+            test_auc.append(metrics.auc(logits, labels, reorder=True))
             test_recall.append(metrics.recall(logits, labels))
 
         print(f"Test loss: {sum(test_losses) / len(test_losses)}")
