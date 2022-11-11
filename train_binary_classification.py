@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     sigmoid = nn.Sigmoid()
     criterion = nn.BCELoss()
-    optimizer = th.optim.Adam(model.parameters(), lr=0.001)
+    optimizer = th.optim.Adam(model.parameters(), lr=0.003)
     
     epoch_losses = []
     
@@ -59,13 +59,23 @@ if __name__ == "__main__":
         epoch_losses.append(sum(iteration_losses) / len(iteration_losses))
 
 
-        plt.figure(figsize=(10, 8))
-        plt.plot(range(len(trainloader)), iteration_losses, label="Loss")
-        plt.plot(range(len(trainloader)), iteration_auc, label="AUC")
-        plt.xlabel("Iteration (epoch: {})".format(epoch))
-        plt.ylabel("Loss")
-        plt.savefig(f"figures/binary-classification/training-metrics-{epoch}.png")
+        if epoch % 5 == 0:
 
+            plt.figure(figsize=(10, 8))
+            plt.plot(range(len(trainloader)), iteration_losses, label="Loss")
+            plt.plot(range(len(trainloader)), iteration_auc, label="AUC")
+            plt.xlabel("Iteration (epoch: {})".format(epoch))
+            plt.ylabel("Loss")
+            plt.legend()
+            plt.savefig(f"figures/binary-classification/training-metrics-{epoch}.png")
+
+    plt.figure(figsize=(10, 8))
+    plt.plot(range(50), epoch_losses, label="Loss")
+    plt.xlabel("Iteration".format(epoch))
+    plt.ylabel("Loss")
+    plt.legend()
+    plt.savefig(f"figures/binary-classification/training-loss.png")
+    
     model.eval()
 
     with th.no_grad():
@@ -83,17 +93,17 @@ if __name__ == "__main__":
             loss = criterion(logits, labels)
 
             test_losses.append(loss.item())
-            test_auc.append(metrics.auc(logits, labels, reorder=True))
-            test_recall.append(metrics.recall(logits, labels))
+            test_auc.append(metrics.auc(logits, labels, reorder=True).item())
+            test_recall.append(metrics.recall(logits, labels.long()).item())
 
         print(f"Test loss: {sum(test_losses) / len(test_losses)}")
         print(f"Test AUC: {sum(test_auc) / len(test_auc)}")
         print(f"Test recall: {sum(test_recall) / len(test_recall)}")
 
         plt.figure(figsize=(10, 8))
-        plt.plot(range(len(testloader), test_losses), label="Loss")
-        plt.plot(range(len(testloader), test_auc), label="AUC")
-        plt.plot(range(len(testloader), test_recall), label="Recall")
+        plt.plot(range(len(testloader)), test_losses, label="Loss")
+        plt.plot(range(len(testloader)), test_auc, label="AUC")
+        plt.plot(range(len(testloader)), test_recall, label="Recall")
         plt.xlabel("Iteration")
         plt.ylabel("Loss")
         plt.legend()
